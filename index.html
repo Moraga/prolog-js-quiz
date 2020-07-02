@@ -1,0 +1,137 @@
+<html lang="pt" ng-app="app">
+<head>
+    <title>Quiz</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.8/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.8/angular-route.min.js"></script>
+</head>
+<body ng-controller="main">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-auto">
+                <nav class="nav flex-column">
+                    <a class="nav-item nav-link">Meta-perguntas</a>
+                    <a class="nav-item nav-link">Perguntas</a>
+                    <a class="nav-item nav-link">Quiz</a>
+                </nav>
+            </div>
+            <div class="col">
+
+                    <form class="card mb-3" ng-repeat="x in xs" ng-submit="submit(x)">
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Pergunta</label>
+                                <input class="form-control" ng-model="x.q">
+                            </div>
+                            <div class="form-group">
+                                <label>Resposta</label>
+                                <input class="form-control" ng-model="x.a">
+                            </div>
+                            <div class="form-group">
+                                <label>Respostas erradas</label>
+                                <div ng-repeat="o in x.o track by $index">
+                                    <div>
+                                        <input class="form-control" ng-model="o">
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-light" ng-click="x.o.push('')">Adicionar</button>
+                            </div>
+
+                            <button type="button" class="btn btn-success" ng-click="gen(x)">Gerar</button>
+
+                            <button class="btn btn-primary">Salvar</button>
+                        </div>
+                    </form>
+
+                <form>
+                    <div class="form-group">
+                        <label>Nome do quiz</label>
+                        <input class="form-control">
+                    </div>
+                    <button class="btn btn-primary">Criar</button>
+                </form>
+
+            </div>
+        </div>
+
+       
+    </div>
+    
+
+<script>
+    angular.module('app', [])
+        .service('pengine', function ($http, $q) {
+            return {
+                ask(ask) {
+                    return $q((resolve, reject) => {
+                        $http.post('http://localhost:3030/pengine/create', {
+                            format: 'json',
+                            application: 'db',
+                            ask,
+                            chunk: 100,
+                        }).then(({data}) => {
+                            // $scope.resp = data;
+                            console.log(data);
+
+                        });
+                    })
+                }
+            }
+        })
+        .controller('main', function ($scope, $http, pengine) {
+            $scope.xs = [
+                {
+                    p: 'presidente',
+                    q: '$0 foi o presidente de qual país?',
+                    a: 1,
+                    o: []
+                },
+                {
+                    p: 'presidente',
+                    q: 'Quem presidiu $1 em $2?',
+                    a: 0,
+                    o: []
+                },
+                {
+                    p: 'presidente',
+                    q: 'Quem foi o presidente do $1?',
+                    a: 0,
+                    o: []
+                },
+            ];
+
+            const pred = {
+                presidente: 4
+            };
+
+            $scope.gen = ({p, q, a, o}) => {
+                const vs = q.split(/(\$\d+)/g).map(x => x.charAt(0) == '$' ? parseFloat(x.substr(1)) : x);
+                const cols = vs.filter(x => typeof x == 'number');
+                console.log(cols);
+
+                const args = [];
+                const vars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+                for (let i = 0, v = 0; i < pred.presidente; ++i) {
+                    args.push(cols.includes(i) ? vars.charAt(v++) : '_');
+                }
+
+                args[a] = 'X';
+
+                const input = 'presidente(' + args.join(', ') + ')';
+
+                pengine.ask(input).then(data => {
+                    console.log(data);
+                });
+            }
+
+            $scope.submit = question => {
+                console.log(question);
+            };
+
+            
+        });
+</script>
+</body>
+</html>
